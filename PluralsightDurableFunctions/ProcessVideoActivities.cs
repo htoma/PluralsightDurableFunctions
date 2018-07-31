@@ -1,4 +1,6 @@
-﻿namespace PluralsightDurableFunctions
+﻿using System;
+
+namespace PluralsightDurableFunctions
 {
     using System.Configuration;
     using System.Threading.Tasks;
@@ -15,7 +17,7 @@
             // simulate doing the activity
             await Task.Delay(5000);
 
-            return "transcoded.mp4";
+            return inputVideo.Contains("error") ? "error" : "transcoded.mp4";
         }
 
         [FunctionName("A_ExtractThumbnail")]
@@ -23,13 +25,18 @@
         {
             log.Info($"Extracting thumbnail {inputVideo}");
 
+            if (inputVideo.Contains("error"))
+            {
+                throw new InvalidOperationException("Testing exception handling");
+            }
+
             // simulate doing the activity
             await Task.Delay(5000);
 
             return "thumbnail.png";
         }
 
-        [FunctionName("A_PrependINtro")]
+        [FunctionName("A_PrependIntro")]
         public static async Task<string> PrependIntro([ActivityTrigger] string inputVideo, TraceWriter log)
         {
             log.Info($"Appending intro to video {inputVideo}");
@@ -39,6 +46,14 @@
             await Task.Delay(5000);
 
             return "withIntro.mp4";
+        }
+
+        [FunctionName("A_Cleanup")]
+        public static async Task Cleanup([ActivityTrigger] string inputVideo, TraceWriter log)
+        {
+            log.Info($"Cleaning video {inputVideo}");
+            // simulate doing the activity
+            await Task.Delay(5000);
         }
     }
 }
