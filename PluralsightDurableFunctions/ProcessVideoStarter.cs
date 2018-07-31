@@ -33,13 +33,13 @@ namespace PluralsightDurableFunctions
             if (video == null)
             {
                 return req.CreateResponse(
-                    HttpStatusCode.BadRequest,
+                    HttpStatusCode.BadRequest, 
                     "Please pass the video location in the query string or in the request body");
             }
 
             log.Info($"About to start orchestration for {video}");
 
-            var orchestrationId = await starter.StartNewAsync("0_ProcessVideo", video);
+            var orchestrationId = await starter.StartNewAsync("O_ProcessVideo", video);
 
             return starter.CreateCheckStatusResponse(req, orchestrationId);
         }
