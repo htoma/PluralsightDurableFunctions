@@ -2,6 +2,8 @@
 
 namespace PluralsightDurableFunctions
 {
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host;
@@ -14,29 +16,48 @@ namespace PluralsightDurableFunctions
             TraceWriter log)
         {
             var videoLocation = context.GetInput<string>();
+
+            string transcodedLocation = null;
+            string thumbnailLocation = null;
+            string withIntroLocation = null;
+
             try
             {
-                if (!context.IsReplaying)
+                var bitRates = new[] { 1000, 2000, 3000, 4000 };
+                var transcodeTasks = new List<Task<VideoFileInfo>>();
+
+                foreach (var bitRate in bitRates)
                 {
-                    log.Info("Will call A_TranscodedVideo");
+                    var info = new VideoFileInfo
+                        {
+                            Location = videoLocation,
+                            BitRate = bitRate
+                        };
+                    var task = context.CallActivityAsync<VideoFileInfo>("A_TranscodedVideo", info);
+                    transcodeTasks.Add(task);
                 }
 
-                var transcodedLocation = await context.CallActivityAsync<string>("A_TranscodedVideo", videoLocation);
+                var transcodedResults = await Task.WhenAll(transcodeTasks);
+                transcodedLocation =
+                    transcodedResults.OrderByDescending(x => x.BitRate).Select(x => x.Location).First();
 
-                if (!context.IsReplaying)
-                {
-                    log.Info("Will call A_ExtractThumbnail");
-                }
+                transcodedLocation = await context.CallActivityAsync<string>("A_TranscodedVideo", videoLocation);
 
-                var thumbnailLocation =
-                    await context.CallActivityAsync<string>("A_ExtractThumbnail", transcodedLocation);
+                thumbnailLocation =
+                    await context.CallActivityWithRetryAsync<string>(
+                        "A_ExtractThumbnail",
+                        new RetryOptions(TimeSpan.FromSeconds(5), 3)
+                            {
+                                Handle = ex => ex is InvalidOperationException
+                            },
+                        transcodedLocation);
 
                 if (!context.IsReplaying)
                 {
                     log.Info("Will call A_PrependIntro");
                 }
 
-                var withIntroLocation = await context.CallActivityAsync<string>("A_PrependIntro", transcodedLocation);
+                withIntroLocation = await context.CallActivityAsync<string>("A_PrependIntro", transcodedLocation);
 
                 return new
                 {
