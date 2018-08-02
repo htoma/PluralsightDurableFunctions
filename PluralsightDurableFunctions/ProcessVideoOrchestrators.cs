@@ -1,9 +1,9 @@
 ﻿using System;
+using System.Linq;
 
 namespace PluralsightDurableFunctions
 {
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host;
@@ -17,47 +17,27 @@ namespace PluralsightDurableFunctions
         {
             var videoLocation = context.GetInput<string>();
 
-            string transcodedLocation = null;
-            string thumbnailLocation = null;
-            string withIntroLocation = null;
-
             try
             {
-                var bitRates = new[] { 1000, 2000, 3000, 4000 };
-                var transcodeTasks = new List<Task<VideoFileInfo>>();
+                var transcodedResults =
+                    await context.CallSubOrchestratorAsync<VideoFileInfo[]>("O_TranscodedVideo", videoLocation);
 
-                foreach (var bitRate in bitRates)
-                {
-                    var info = new VideoFileInfo
-                        {
-                            Location = videoLocation,
-                            BitRate = bitRate
-                        };
-                    var task = context.CallActivityAsync<VideoFileInfo>("A_TranscodedVideo", info);
-                    transcodeTasks.Add(task);
-                }
-
-                var transcodedResults = await Task.WhenAll(transcodeTasks);
-                transcodedLocation =
+                var transcodedLocation =
                     transcodedResults.OrderByDescending(x => x.BitRate).Select(x => x.Location).First();
-
-                transcodedLocation = await context.CallActivityAsync<string>("A_TranscodedVideo", videoLocation);
-
-                thumbnailLocation =
-                    await context.CallActivityWithRetryAsync<string>(
-                        "A_ExtractThumbnail",
-                        new RetryOptions(TimeSpan.FromSeconds(5), 3)
-                            {
-                                Handle = ex => ex is InvalidOperationException
-                            },
-                        transcodedLocation);
+                var thumbnailLocation = await context.CallActivityWithRetryAsync<string>(
+                    "A_ExtractThumbnail", 
+                    new RetryOptions(TimeSpan.FromSeconds(5), 3)
+                    {
+                        Handle = ex => ex is InvalidOperationException
+                    },
+                    transcodedLocation);
 
                 if (!context.IsReplaying)
                 {
                     log.Info("Will call A_PrependIntro");
                 }
 
-                withIntroLocation = await context.CallActivityAsync<string>("A_PrependIntro", transcodedLocation);
+                var withIntroLocation = await context.CallActivityAsync<string>("A_PrependIntro", transcodedLocation);
 
                 return new
                 {
@@ -81,6 +61,30 @@ namespace PluralsightDurableFunctions
                     ex.Message
                 };
             }
+        }
+
+        [FunctionName("O_TranscodedVideo")]
+        public static async Task<VideoFileInfo[]> TranscodeVideo(
+            [OrchestrationTrigger] DurableOrchestrationContext context,
+            TraceWriter log)
+        {
+            var videoLocation = context.GetInput<string>();
+            var bitRates = new[] { 1000, 2000, 3000, 4000 };
+            var transcodeTasks = new List<Task<VideoFileInfo>>();
+
+            foreach (var bitRate in bitRates)
+            {
+                var info = new VideoFileInfo
+                {
+                    Location = videoLocation,
+                    BitRate = bitRate
+                };
+                var task = context.CallActivityAsync<VideoFileInfo>("A_TranscodedVideo", info);
+                transcodeTasks.Add(task);
+            }
+
+            var transcodedResults = await Task.WhenAll(transcodeTasks);
+            return transcodedResults;            
         }
     }
 }

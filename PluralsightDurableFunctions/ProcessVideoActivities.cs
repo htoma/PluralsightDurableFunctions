@@ -11,7 +11,8 @@ namespace PluralsightDurableFunctions
     public static class ProcessVideoActivities
     {
         [FunctionName("A_TranscodedVideo")]
-        public static async Task<VideoFileInfo> TranscodeVideo([ActivityTrigger] VideoFileInfo inputVideo, TraceWriter log)
+        public static async Task<VideoFileInfo> TranscodeVideo([ActivityTrigger] VideoFileInfo inputVideo,
+            TraceWriter log)
         {
             log.Info($"Transcoding {inputVideo.Location} to {inputVideo.BitRate}");
 
@@ -21,10 +22,10 @@ namespace PluralsightDurableFunctions
             var transcodedLocation =
                 $"{Path.GetFileNameWithoutExtension(inputVideo.Location)}-{inputVideo.BitRate}kbps.mp4";
             return new VideoFileInfo
-                {
-                    Location = transcodedLocation,
-                    BitRate = inputVideo.BitRate
-                };
+            {
+                Location = transcodedLocation,
+                BitRate = inputVideo.BitRate
+            };
         }
 
         [FunctionName("A_ExtractThumbnail")]
