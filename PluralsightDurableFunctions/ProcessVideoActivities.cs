@@ -10,6 +10,8 @@ namespace PluralsightDurableFunctions
 
     public static class ProcessVideoActivities
     {
+        private const int Delay = 1000;
+
         [FunctionName("A_TranscodedVideo")]
         public static async Task<VideoFileInfo> TranscodeVideo([ActivityTrigger] VideoFileInfo inputVideo,
             TraceWriter log)
@@ -17,7 +19,7 @@ namespace PluralsightDurableFunctions
             log.Info($"Transcoding {inputVideo.Location} to {inputVideo.BitRate}");
 
             // simulate doing the activity
-            await Task.Delay(5000);
+            await Task.Delay(Delay);
 
             var transcodedLocation =
                 $"{Path.GetFileNameWithoutExtension(inputVideo.Location)}-{inputVideo.BitRate}kbps.mp4";
@@ -39,7 +41,7 @@ namespace PluralsightDurableFunctions
             }
 
             // simulate doing the activity
-            await Task.Delay(5000);
+            await Task.Delay(Delay);
 
             return "thumbnail.png";
         }
@@ -51,7 +53,7 @@ namespace PluralsightDurableFunctions
             var introLocation = ConfigurationManager.AppSettings["IntroLocation"];
 
             // simulate doing the activity
-            await Task.Delay(5000);
+            await Task.Delay(Delay);
 
             return "withIntro.mp4";
         }
@@ -61,7 +63,34 @@ namespace PluralsightDurableFunctions
         {
             log.Info($"Cleaning video {inputVideo}");
             // simulate doing the activity
-            await Task.Delay(5000);
+            await Task.Delay(Delay);
+        }
+
+        [FunctionName("A_SendApprovalRequestEmail")]
+        public static async Task SendApprovalRequestEmail([ActivityTrigger] string inputVideo, TraceWriter log)
+        {
+            log.Info($"Requesting approval for {inputVideo}");
+
+            // simulate sending an email
+            await Task.Delay(Delay);
+        }
+
+        [FunctionName("A_PublishVideo")]
+        public static async Task PublishVideo([ActivityTrigger] string inputVideo, TraceWriter log)
+        {
+            log.Info($"Publishing {inputVideo}");
+
+            // simulate publishing
+            await Task.Delay(Delay);
+        }
+
+        [FunctionName("A_RejectVideo")]
+        public static async Task RejectVideo([ActivityTrigger] string inputVideo, TraceWriter log)
+        {
+            log.Info($"Rejecting {inputVideo}");
+
+            // simulate rejecting video
+            await Task.Delay(Delay);
         }
     }
 }

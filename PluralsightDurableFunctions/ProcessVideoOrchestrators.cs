@@ -17,6 +17,8 @@ namespace PluralsightDurableFunctions
         {
             var videoLocation = context.GetInput<string>();
 
+            var approvalResult = "Unknown";
+
             try
             {
                 var transcodedResults =
@@ -39,11 +41,25 @@ namespace PluralsightDurableFunctions
 
                 var withIntroLocation = await context.CallActivityAsync<string>("A_PrependIntro", transcodedLocation);
 
+                await context.CallActivityAsync<string>("A_SendApprovalRequestEmail", withIntroLocation);
+
+                approvalResult = await context.WaitForExternalEvent<string>("ApprovalResult");
+
+                if (approvalResult == "Approved")
+                {
+                    await context.CallActivityAsync("A_PublishVideo", withIntroLocation);
+                }
+                else
+                {
+                    await context.CallActivityAsync("A_RejectVideo", withIntroLocation);
+                }
+
                 return new
                 {
                     Transcoded = transcodedLocation,
                     Thumbnail = thumbnailLocation,
-                    WithIntro = withIntroLocation
+                    WithIntro = withIntroLocation,
+                    ApprovalResult = approvalResult
                 };
             }
             catch (Exception ex)
