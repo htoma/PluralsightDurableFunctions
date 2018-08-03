@@ -44,6 +44,8 @@ namespace PluralsightDurableFunctions
             return starter.CreateCheckStatusResponse(req, orchestrationId);
         }
 
+
+        [FunctionName("SubmitVideoApproval")]
         public static async Task<HttpResponseMessage> SubmitVideoApproval(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "SubmitVideoApproval/{id}")]
             HttpRequestMessage req,
@@ -61,7 +63,7 @@ namespace PluralsightDurableFunctions
             log.Warning($"Sending approval result to {approval.OrchestrationId} of {result}");
 
             // send the ApprovalResult external event to this orchestration
-            await client.RaiseEventAsync(approval.OrchestrationId, "ApprovalResult", result);
+            await client.RaiseEventAsync(approval.OrchestrationId, Constants.ApprovalResultEventName, result);
 
             return req.CreateResponse(HttpStatusCode.OK);
         }

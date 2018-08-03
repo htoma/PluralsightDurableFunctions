@@ -47,7 +47,7 @@ namespace PluralsightDurableFunctions
                         VideoLocation = withIntroLocation
                     });
 
-                approvalResult = await context.WaitForExternalEvent<string>("ApprovalResult");
+                approvalResult = await context.WaitForExternalEvent<string>(Constants.ApprovalResultEventName);
 
                 if (approvalResult == "Approved")
                 {
