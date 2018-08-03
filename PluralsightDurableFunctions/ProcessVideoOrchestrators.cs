@@ -41,7 +41,11 @@ namespace PluralsightDurableFunctions
 
                 var withIntroLocation = await context.CallActivityAsync<string>("A_PrependIntro", transcodedLocation);
 
-                await context.CallActivityAsync<string>("A_SendApprovalRequestEmail", withIntroLocation);
+                await context.CallActivityAsync<string>("A_SendApprovalRequestEmail", new ApprovalInfo
+                    {
+                        OrchestrationId = context.InstanceId,
+                        VideoLocation = withIntroLocation
+                    });
 
                 approvalResult = await context.WaitForExternalEvent<string>("ApprovalResult");
 

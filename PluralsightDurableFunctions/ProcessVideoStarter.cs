@@ -43,5 +43,27 @@ namespace PluralsightDurableFunctions
 
             return starter.CreateCheckStatusResponse(req, orchestrationId);
         }
+
+        public static async Task<HttpResponseMessage> SubmitVideoApproval(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "SubmitVideoApproval/{id}")]
+            HttpRequestMessage req,
+            [OrchestrationClient] DurableOrchestrationClient client,
+            [Table("Approvals", "Approval", "{id}", Connection = "AzureWebJobsStorage")]
+            Approval approval,
+            TraceWriter log)
+        {
+            var result = req.GetQueryNameValuePairs().FirstOrDefault(x => x.Key == "result").Value;
+            if (result == null)
+            {
+                return req.CreateResponse(HttpStatusCode.BadRequest, "Need an approval result");
+            }
+
+            log.Warning($"Sending approval result to {approval.OrchestrationId} of {result}");
+
+            // send the ApprovalResult external event to this orchestration
+            await client.RaiseEventAsync(approval.OrchestrationId, "ApprovalResult", result);
+
+            return req.CreateResponse(HttpStatusCode.OK);
+        }
     }
 }
