@@ -51,12 +51,11 @@ namespace PluralsightDurableFunctions
         public static async Task<string> PrependIntro([ActivityTrigger] string inputVideo, TraceWriter log)
         {
             log.Info($"Appending intro to video {inputVideo}");
-            var introLocation = ConfigurationManager.AppSettings["IntroLocation"];
-
+            
             // simulate doing the activity
             await Task.Delay(Delay);
 
-            return "withIntro.mp4";
+            return inputVideo;
         }
 
         [FunctionName("A_Cleanup")]

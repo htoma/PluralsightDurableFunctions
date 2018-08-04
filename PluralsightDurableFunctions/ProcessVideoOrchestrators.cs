@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
 
 namespace PluralsightDurableFunctions
 {
@@ -16,8 +17,6 @@ namespace PluralsightDurableFunctions
             TraceWriter log)
         {
             var videoLocation = context.GetInput<string>();
-
-            var approvalResult = "Unknown";
 
             try
             {
@@ -47,7 +46,25 @@ namespace PluralsightDurableFunctions
                         VideoLocation = withIntroLocation
                     });
 
-                approvalResult = await context.WaitForExternalEvent<string>(Constants.ApprovalResultEventName);
+                string approvalResult;
+                using (var cts = new CancellationTokenSource())
+                {
+                    var timeoutAt = context.CurrentUtcDateTime.AddSeconds(30);
+                    var timerTask = context.CreateTimer(timeoutAt, cts.Token);
+                    var approvalTask = context.WaitForExternalEvent<string>(Constants.ApprovalResultEventName);
+                    var winner = await Task.WhenAny(timerTask, approvalTask);
+
+                    if (winner == approvalTask)
+                    {
+                        approvalResult = approvalTask.Result;
+                        cts.Cancel();
+                    }
+                    else
+                    {
+                        approvalResult = "Timed out";
+
+                    }
+                }
 
                 if (approvalResult == "Approved")
                 {
