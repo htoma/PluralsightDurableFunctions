@@ -123,5 +123,25 @@ namespace PluralsightDurableFunctions
             var transcodedResults = await Task.WhenAll(transcodeTasks);
             return transcodedResults;            
         }
+        
+        [FunctionName("O_PeriodicTask")]
+        public static async Task<int> PeriodicTask(
+            [OrchestrationTrigger] DurableOrchestrationContext context,
+            TraceWriter log)
+        {
+            var timesRun = context.GetInput<int>();
+            timesRun++;
+
+            if (!context.IsReplaying)
+            {
+                log.Info($"Starting the PeriodicTask activity {context.InstanceId}, {timesRun}");
+            }
+
+            await context.CallActivityAsync("A_PeriodicActivity", timesRun);
+            var nextRun = context.CurrentUtcDateTime.AddSeconds(30);
+            await context.CreateTimer(nextRun, CancellationToken.None);
+            context.ContinueAsNew(timesRun);
+            return timesRun;
+        }
     }
 }

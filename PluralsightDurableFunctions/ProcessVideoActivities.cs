@@ -116,5 +116,13 @@ namespace PluralsightDurableFunctions
             // simulate rejecting video
             await Task.Delay(Delay);
         }
+
+        [FunctionName("A_PeriodicActivity")]
+        public static void PeriodicActivity(
+            [ActivityTrigger] int timesRun,
+            TraceWriter log)
+        {
+            log.Warning($"Running the periodic activity, times run = {timesRun}");
+        }
     }
 }

@@ -67,5 +67,16 @@ namespace PluralsightDurableFunctions
 
             return req.CreateResponse(HttpStatusCode.OK);
         }
+
+        [FunctionName("StartPeriodicTask")]
+        public static async Task<HttpResponseMessage> StartPeriodicTask(
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)]
+            HttpRequestMessage req,
+            [OrchestrationClient] DurableOrchestrationClient client,
+            TraceWriter log)
+        {
+            var instanceId = await client.StartNewAsync("O_PeriodicTask", 0);
+            return client.CreateCheckStatusResponse(req, instanceId);
+        }
     }
 }
